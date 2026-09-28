@@ -47,8 +47,8 @@
 
     <div class="status-strip" aria-label="项目阶段">
       <div class="phase"><small>阶段 01</small><strong>表达体验验证</strong><div class="bar"><i style="width:68%"></i></div></div>
-      <div class="phase future"><small>阶段 02</small><strong>硬件比较与选型</strong><div class="bar"><i style="width:18%"></i></div></div>
-      <div class="phase future"><small>阶段 03</small><strong>可烧录固件</strong><div class="bar"><i style="width:8%"></i></div></div>
+      <div class="phase"><small>阶段 02</small><strong>样机硬件已确定</strong><div class="bar"><i style="width:62%"></i></div></div>
+      <div class="phase future"><small>阶段 03</small><strong>可烧录固件</strong><div class="bar"><i style="width:16%"></i></div></div>
     </div>
 
     <section id="requirements">
@@ -81,15 +81,15 @@
     </section>
 
     <section id="hardware">
-      <div class="section-head"><div><span class="tag draft">准备选型</span><h2>硬件决策</h2></div><p>不提前锁定芯片</p></div>
+      <div class="section-head"><div><span class="tag">样机已连接</span><h2>硬件决策</h2></div><p>ESP32-S3 N16R8 · COM5</p></div>
       <div class="grid">
         <article class="card span8"><h3>选型权重</h3><table class="matrix"><thead><tr><th>维度</th><th>验证重点</th><th>权重</th></tr></thead><tbody><tr><td>中文显示</td><td>3–6 行清晰可读</td><td>15%</td></tr><tr><td>语音采集</td><td>0.3–1.5 米近讲稳定</td><td>15%</td></tr><tr><td>交互延迟</td><td>按下后 500 ms 内响应</td><td>15%</td></tr><tr><td>连接能力</td><td>BLE、USB、Wi-Fi</td><td>15%</td></tr><tr><td>开发成熟度</td><td>驱动、OTA、社区资料</td><td>15%</td></tr></tbody></table></article>
-        <article class="card span4"><h3>当前暂定</h3><p>第一代优先采用桌面形态，放在键盘旁边。这样更容易验证屏幕阅读、麦克风距离、实体按键和文字输出。</p><p class="note">候选方向：ESP32-S3、带 NPU 的 Linux SOM，以及低功耗控制器配合手机或云端计算。</p></article>
+        <article class="card span4"><h3>第一台样机</h3><p>采用现有 ESP32-S3 N16R8 小设备：16 MB Flash、8 MB PSRAM、1.54 英寸 ST7789 彩屏、CH340K、720 mAh 电池和扬声器。</p><p class="note">下一步：确认麦克风、屏幕、按键和音频引脚；在此之前不覆盖原固件。</p></article>
       </div>
     </section>
 
     <section id="firmware">
-      <div class="section-head"><div><span class="tag draft">架构草案</span><h2>固件路线</h2></div><p>硬件确定后进入实现</p></div>
+      <div class="section-head"><div><span class="tag draft">准备开发</span><h2>固件路线</h2></div><p>先核对引脚与下载模式</p></div>
       <div class="grid">
         <article class="card span4"><h3>输入层</h3><p>麦克风采集、物理按键、旋钮和录音状态。任何时候都必须让使用者知道设备是否在听。</p></article>
         <article class="card span4"><h3>表达状态机</h3><p>待机、倾听、等待思考、转写、整理、确认和输出。继续补充可以回到倾听状态。</p></article>

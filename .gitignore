@@ -2,6 +2,8 @@
 .sites-runtime/
 _site/
 *.tar
+.venv/
+.tools/
 *.tar.gz
 
 # Firmware build output
