@@ -44,6 +44,9 @@
     .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
     .brand { display: flex; align-items: center; gap: 12px; font-weight: 850; font-size: 1.25rem; letter-spacing: -.02em; }
     .brand-mark { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; background: var(--blue); color: white; box-shadow: 0 8px 20px rgba(36,87,230,.25); }
+    .top-actions { display: flex; align-items: center; gap: 14px; }
+    .hub-link { color: var(--blue); text-decoration: none; font-weight: 800; padding: 9px 13px; border-radius: 12px; background: rgba(255,255,255,.78); border: 1px solid rgba(36,87,230,.16); }
+    .hub-link:hover { background: white; box-shadow: 0 6px 18px rgba(36,87,230,.12); }
     .privacy { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: .88rem; }
     .privacy::before { content: ""; width: 8px; height: 8px; background: #30a46c; border-radius: 50%; }
 
@@ -144,7 +147,10 @@
   <main class="shell">
     <header class="topbar">
       <div class="brand"><span class="brand-mark" aria-hidden="true">说</span>慢慢说</div>
-      <div class="privacy">这次练习不会保存录音</div>
+      <div class="top-actions">
+        <div class="privacy">这次练习不会保存录音</div>
+        <a class="hub-link" href="../">← 返回项目工作台</a>
+      </div>
     </header>
 
     <div class="workspace">
