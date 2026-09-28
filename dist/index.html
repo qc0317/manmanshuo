@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#2457e6" />
+  <meta name="description" content="慢慢说：帮助孩子把说出来的想法整理成自己的文字。" />
+  <title>慢慢说 · 表达练习伙伴</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%232457e6'/%3E%3Cpath d='M18 20h28v19H31l-9 8v-8h-4z' fill='white'/%3E%3Ccircle cx='25' cy='30' r='2' fill='%232457e6'/%3E%3Ccircle cx='32' cy='30' r='2' fill='%232457e6'/%3E%3Ccircle cx='39' cy='30' r='2' fill='%232457e6'/%3E%3C/svg%3E" />
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #14213d;
+      --muted: #65718a;
+      --blue: #2457e6;
+      --blue-dark: #1742bd;
+      --blue-soft: #eef3ff;
+      --sky: #ddebff;
+      --sun: #ffca3a;
+      --mint: #dff7ee;
+      --line: #dce3f1;
+      --paper: #ffffff;
+      --canvas: #f4f7fc;
+      --danger: #c5394b;
+      --shadow: 0 18px 48px rgba(33, 62, 124, .12);
+      font-family: "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 12% 8%, rgba(255, 202, 58, .18), transparent 23rem),
+        radial-gradient(circle at 92% 6%, rgba(36, 87, 230, .13), transparent 26rem),
+        var(--canvas);
+      color: var(--ink);
+    }
+
+    button, textarea { font: inherit; }
+    button { cursor: pointer; }
+
+    .shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 24px 0 56px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 850; font-size: 1.25rem; letter-spacing: -.02em; }
+    .brand-mark { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; background: var(--blue); color: white; box-shadow: 0 8px 20px rgba(36,87,230,.25); }
+    .privacy { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: .88rem; }
+    .privacy::before { content: ""; width: 8px; height: 8px; background: #30a46c; border-radius: 50%; }
+
+    .workspace { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr); gap: 22px; align-items: start; }
+    .panel { background: rgba(255,255,255,.94); border: 1px solid rgba(220,227,241,.92); border-radius: 28px; box-shadow: var(--shadow); }
+    .main-panel { padding: 28px; min-height: 650px; }
+    .side-panel { padding: 22px; position: sticky; top: 18px; }
+
+    .eyebrow { margin: 0 0 8px; color: var(--blue); font-weight: 800; font-size: .82rem; letter-spacing: .08em; }
+    h1 { margin: 0; font-size: clamp(1.7rem, 4vw, 2.55rem); line-height: 1.18; letter-spacing: -.045em; }
+    .lead { margin: 12px 0 24px; color: var(--muted); font-size: 1.05rem; line-height: 1.75; }
+
+    .mode-row { display: flex; flex-wrap: wrap; gap: 9px; padding: 5px; background: #f0f3f9; border-radius: 16px; width: fit-content; }
+    .mode { border: 0; border-radius: 12px; padding: 10px 15px; background: transparent; color: var(--muted); font-weight: 750; }
+    .mode.active { background: white; color: var(--blue); box-shadow: 0 4px 13px rgba(37,57,105,.1); }
+
+    .prompt-card { margin: 22px 0; padding: 18px 20px; background: linear-gradient(130deg, var(--blue-soft), #f8faff); border: 1px solid #d8e3ff; border-radius: 18px; }
+    .prompt-label { display: flex; align-items: center; gap: 7px; color: var(--blue-dark); font-weight: 800; font-size: .82rem; }
+    .prompt-text { margin: 8px 0 0; font-size: 1.14rem; font-weight: 720; line-height: 1.55; }
+
+    .speech-area { border: 2px solid var(--line); border-radius: 22px; padding: 18px; transition: .2s ease; background: white; }
+    .speech-area.listening { border-color: var(--blue); box-shadow: 0 0 0 6px rgba(36,87,230,.08); }
+    .speech-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .speech-title { font-weight: 850; }
+    .status { color: var(--muted); font-size: .86rem; }
+    .status.live { color: var(--danger); font-weight: 750; }
+    textarea { width: 100%; min-height: 150px; resize: vertical; border: 0; outline: 0; color: var(--ink); font-size: 1.12rem; line-height: 1.85; background: transparent; }
+    textarea::placeholder { color: #9aa5bb; }
+
+    .recorder { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 24px 0 16px; }
+    .record-btn { position: relative; width: 92px; height: 92px; border-radius: 50%; border: 8px solid #e6edff; background: var(--blue); color: white; box-shadow: 0 12px 28px rgba(36,87,230,.3); display: grid; place-items: center; transition: transform .18s ease, background .18s ease; }
+    .record-btn:hover { transform: translateY(-2px); }
+    .record-btn.recording { background: var(--danger); border-color: #ffe5e8; animation: pulse 1.8s infinite; }
+    .mic { width: 28px; height: 35px; border: 3px solid currentColor; border-radius: 18px; position: relative; }
+    .mic::after { content: ""; position: absolute; left: 50%; bottom: -11px; width: 17px; height: 9px; border: 3px solid currentColor; border-top: 0; border-radius: 0 0 12px 12px; transform: translateX(-50%); }
+    .mic::before { content: ""; position: absolute; left: 50%; bottom: -17px; width: 3px; height: 8px; background: currentColor; transform: translateX(-50%); }
+    @keyframes pulse { 50% { box-shadow: 0 12px 28px rgba(197,57,75,.28), 0 0 0 12px rgba(197,57,75,.08); } }
+    .record-copy strong { display: block; font-size: 1.06rem; }
+    .record-copy span { display: block; color: var(--muted); margin-top: 4px; font-size: .88rem; }
+
+    .actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 18px; }
+    .btn { border: 0; border-radius: 14px; min-height: 46px; padding: 0 18px; font-weight: 800; }
+    .btn.primary { background: var(--blue); color: white; box-shadow: 0 8px 18px rgba(36,87,230,.2); }
+    .btn.primary:hover { background: var(--blue-dark); }
+    .btn.secondary { background: #eef2f8; color: var(--ink); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+
+    .side-title { margin: 0; font-size: 1.08rem; }
+    .steps { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 14px; }
+    .step { display: grid; grid-template-columns: 34px 1fr; gap: 11px; align-items: start; color: var(--muted); line-height: 1.55; }
+    .step-num { width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center; background: #eff3fa; color: #7c879d; font-weight: 850; }
+    .step.active { color: var(--ink); font-weight: 700; }
+    .step.active .step-num { background: var(--sun); color: #5d4500; }
+    .step.done .step-num { background: var(--mint); color: #187353; }
+    .gentle-note { margin-top: 22px; padding: 16px; border-radius: 16px; background: #fff9e8; color: #725a13; line-height: 1.6; font-size: .92rem; }
+
+    .result { display: none; }
+    .result.show { display: block; animation: rise .35s ease; }
+    @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+    .result-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .result-head h2 { margin: 0; font-size: 1.45rem; }
+    .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .result-card { border: 1px solid var(--line); border-radius: 19px; padding: 17px; min-height: 170px; }
+    .result-card.polished { background: var(--blue-soft); border-color: #cad9ff; }
+    .card-label { color: var(--muted); font-size: .8rem; font-weight: 800; letter-spacing: .06em; }
+    .result-text { margin: 10px 0 0; white-space: pre-wrap; line-height: 1.8; font-size: 1.04rem; }
+    .confirm-question { margin: 18px 0 0; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-radius: 17px; background: #fff9e8; }
+    .confirm-question strong { display: block; }
+    .confirm-question span { display: block; margin-top: 3px; color: #806719; font-size: .87rem; }
+    .confirm-actions { display: flex; gap: 9px; flex-shrink: 0; }
+    .mini-btn { border: 1px solid #e7d38d; border-radius: 11px; background: white; padding: 9px 12px; font-weight: 800; color: #604b0e; }
+    .mini-btn.yes { background: var(--sun); border-color: var(--sun); }
+    .output-bar { display: none; margin-top: 16px; padding: 15px 17px; border-radius: 16px; background: var(--mint); color: #175f47; align-items: center; justify-content: space-between; gap: 12px; }
+    .output-bar.show { display: flex; }
+
+    .toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; background: #17223b; color: white; padding: 12px 17px; border-radius: 12px; box-shadow: var(--shadow); transition: .25s ease; z-index: 10; }
+    .toast.show { transform: translate(-50%, 0); opacity: 1; }
+
+    @media (max-width: 840px) {
+      .workspace { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .main-panel { min-height: auto; }
+      .result-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .shell { width: min(100% - 20px, 1180px); padding-top: 14px; }
+      .privacy { display: none; }
+      .main-panel, .side-panel { padding: 19px; border-radius: 22px; }
+      .mode-row { width: 100%; }
+      .mode { flex: 1; padding-inline: 8px; }
+      .confirm-question { align-items: flex-start; flex-direction: column; }
+      .actions { flex-direction: column-reverse; }
+      .btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">说</span>慢慢说</div>
+      <div class="privacy">这次练习不会保存录音</div>
+    </header>
+
+    <div class="workspace">
+      <section class="panel main-panel" id="inputPanel">
+        <p class="eyebrow">表达练习</p>
+        <h1>不用着急，想好了再继续说。</h1>
+        <p class="lead">我会先完整听完，再帮你把想法整理清楚。停下来思考也没关系。</p>
+
+        <div class="mode-row" role="group" aria-label="整理方式">
+          <button class="mode" data-mode="raw">保持原话</button>
+          <button class="mode active" data-mode="light">轻轻整理</button>
+          <button class="mode" data-mode="structure">分成要点</button>
+        </div>
+
+        <div class="prompt-card">
+          <div class="prompt-label"><span aria-hidden="true">✦</span> 今天可以说</div>
+          <p class="prompt-text" contenteditable="true" id="promptText" aria-label="练习主题">一件最近让我印象很深的事情</p>
+        </div>
+
+        <div class="speech-area" id="speechArea">
+          <div class="speech-head">
+            <span class="speech-title">我的话</span>
+            <span class="status" id="statusText">还没有开始</span>
+          </div>
+          <textarea id="transcript" aria-label="语音转写内容" placeholder="点击下面的蓝色按钮开始说。你也可以直接在这里打字试一试。"></textarea>
+        </div>
+
+        <div class="recorder">
+          <button class="record-btn" id="recordBtn" aria-label="开始说话" aria-pressed="false"><span class="mic" aria-hidden="true"></span></button>
+          <div class="record-copy">
+            <strong id="recordTitle">点一下，开始说</strong>
+            <span id="recordHint">中间可以停下来慢慢想</span>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn secondary" id="demoBtn">放入一段示例</button>
+          <button class="btn primary" id="organizeBtn" disabled>我说完了，帮我整理</button>
+        </div>
+
+        <section class="result" id="resultSection" aria-live="polite">
+          <div class="result-head">
+            <h2>看看是不是你的意思</h2>
+            <button class="mini-btn" id="backBtn">继续补充</button>
+          </div>
+          <div class="result-grid">
+            <article class="result-card">
+              <div class="card-label">我原来是这样说的</div>
+              <p class="result-text" id="originalText"></p>
+            </article>
+            <article class="result-card polished">
+              <div class="card-label">整理以后</div>
+              <p class="result-text" id="polishedText"></p>
+            </article>
+          </div>
+          <div class="confirm-question">
+            <div><strong>这还是你想表达的意思吗？</strong><span>如果不一样，可以回去修改或再说一点。</span></div>
+            <div class="confirm-actions">
+              <button class="mini-btn" id="notQuiteBtn">不太一样</button>
+              <button class="mini-btn yes" id="confirmBtn">是我的意思</button>
+            </div>
+          </div>
+          <div class="output-bar" id="outputBar">
+            <strong>完成了，这是你的文字。</strong>
+            <button class="mini-btn" id="copyBtn">复制文字</button>
+          </div>
+        </section>
+      </section>
+
+      <aside class="panel side-panel">
+        <h2 class="side-title">今天只做三件事</h2>
+        <ol class="steps">
+          <li class="step active" id="step1"><span class="step-num">1</span><span>把想到的先说出来，不用一开始就说得很完整。</span></li>
+          <li class="step" id="step2"><span class="step-num">2</span><span>看看整理后的文字，确认有没有改变你的意思。</span></li>
+          <li class="step" id="step3"><span class="step-num">3</span><span>自己做最后决定，再把文字复制出去。</span></li>
+        </ol>
+        <div class="gentle-note"><strong>记住：</strong>它不会替你想答案，只会帮助你把已经想到的内容说清楚。</div>
+      </aside>
+    </div>
+  </main>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const transcript = document.querySelector('#transcript');
+    const recordBtn = document.querySelector('#recordBtn');
+    const organizeBtn = document.querySelector('#organizeBtn');
+    const speechArea = document.querySelector('#speechArea');
+    const statusText = document.querySelector('#statusText');
+    const recordTitle = document.querySelector('#recordTitle');
+    const recordHint = document.querySelector('#recordHint');
+    const resultSection = document.querySelector('#resultSection');
+    const originalText = document.querySelector('#originalText');
+    const polishedText = document.querySelector('#polishedText');
+    const outputBar = document.querySelector('#outputBar');
+    const toast = document.querySelector('#toast');
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    let listening = false;
+    let finalText = '';
+    let currentMode = 'light';
+    let pauseTimer = null;
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2400);
+    }
+
+    function setListening(next) {
+      listening = next;
+      recordBtn.classList.toggle('recording', next);
+      recordBtn.setAttribute('aria-pressed', String(next));
+      recordBtn.setAttribute('aria-label', next ? '暂停说话' : '开始说话');
+      speechArea.classList.toggle('listening', next);
+      statusText.classList.toggle('live', next);
+      statusText.textContent = next ? '正在听 · 停顿没关系' : (transcript.value.trim() ? '可以继续补充' : '还没有开始');
+      recordTitle.textContent = next ? '我在听，你慢慢说' : '点一下，继续说';
+      recordHint.textContent = next ? '想不出来时可以先停一下' : '我会接着刚才的内容记录';
+    }
+
+    function startPauseReminder() {
+      clearTimeout(pauseTimer);
+      pauseTimer = setTimeout(() => {
+        if (listening) {
+          statusText.textContent = '我还在等你，想好再继续';
+          recordHint.textContent = '不用赶时间';
+        }
+      }, 3200);
+    }
+
+    if (Recognition) {
+      recognition = new Recognition();
+      recognition.lang = 'zh-CN';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      recognition.onresult = (event) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const words = event.results[i][0].transcript;
+          if (event.results[i].isFinal) finalText += words;
+          else interim += words;
+        }
+        transcript.value = finalText + interim;
+        organizeBtn.disabled = !transcript.value.trim();
+        startPauseReminder();
+      };
+      recognition.onerror = (event) => {
+        if (event.error !== 'aborted' && event.error !== 'no-speech') showToast('这次没有听清，也可以直接在文字框里输入。');
+      };
+      recognition.onend = () => {
+        if (listening) {
+          try { recognition.start(); } catch (_) {}
+        }
+      };
+    }
+
+    recordBtn.addEventListener('click', () => {
+      if (!Recognition) {
+        showToast('这个浏览器暂不支持语音识别，可以先使用示例或直接输入。');
+        transcript.focus();
+        return;
+      }
+      if (!listening) {
+        finalText = transcript.value.trim();
+        if (finalText && !/[，。！？；\n]$/.test(finalText)) finalText += '，';
+        setListening(true);
+        startPauseReminder();
+        try { recognition.start(); } catch (_) {}
+      } else {
+        setListening(false);
+        clearTimeout(pauseTimer);
+        recognition.stop();
+      }
+    });
+
+    transcript.addEventListener('input', () => {
+      organizeBtn.disabled = !transcript.value.trim();
+      finalText = transcript.value;
+    });
+
+    document.querySelectorAll('.mode').forEach(button => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('.mode').forEach(item => item.classList.remove('active'));
+        button.classList.add('active');
+        currentMode = button.dataset.mode;
+      });
+    });
+
+    function sentenceParts(text) {
+      return text
+        .replace(/\s+/g, '')
+        .split(/[。！？；]+/)
+        .map(item => item.trim())
+        .filter(Boolean);
+    }
+
+    function lightPolish(text) {
+      let next = text.trim()
+        .replace(/(嗯+|呃+|额+|那个那个|就是就是)/g, '')
+        .replace(/然后那个/g, '')
+        .replace(/(^|[，。！？；])那个(?=[，。！？；]|我|他|她|它)/g, '$1')
+        .replace(/然后(?:呢)?[，,]?\s*然后(?:呢)?/g, '然后')
+        .replace(/我觉得我觉得/g, '我觉得')
+        .replace(/[，,]{2,}/g, '，')
+        .replace(/^[，。！？；、\s]+/, '')
+        .replace(/，然后/g, '。')
+        .replace(/\s+/g, '');
+      const parts = sentenceParts(next);
+      if (parts.length > 1) return parts.map(p => p + '。').join('');
+      if (next && !/[。！？]$/.test(next)) next += '。';
+      return next;
+    }
+
+    function organize(text) {
+      if (currentMode === 'raw') {
+        const trimmed = text.trim();
+        return /[。！？]$/.test(trimmed) ? trimmed : trimmed + '。';
+      }
+      const clean = lightPolish(text);
+      if (currentMode === 'structure') {
+        const parts = sentenceParts(clean);
+        if (parts.length === 1) return '1. ' + parts[0];
+        return parts.map((part, index) => `${index + 1}. ${part}`).join('\n');
+      }
+      return clean;
+    }
+
+    organizeBtn.addEventListener('click', () => {
+      if (listening) {
+        setListening(false);
+        recognition?.stop();
+      }
+      const value = transcript.value.trim();
+      if (!value) return;
+      originalText.textContent = value;
+      polishedText.textContent = organize(value);
+      resultSection.classList.add('show');
+      outputBar.classList.remove('show');
+      document.querySelector('#step1').className = 'step done';
+      document.querySelector('#step2').className = 'step active';
+      resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    document.querySelector('#demoBtn').addEventListener('click', () => {
+      transcript.value = '嗯，我周末去了公园，然后那个我看到一只小狗，然后它一直跟着一个小朋友跑，我觉得特别有意思，我觉得它可能是在和小朋友玩。';
+      finalText = transcript.value;
+      organizeBtn.disabled = false;
+      statusText.textContent = '已经放入示例，可以试着整理';
+    });
+
+    document.querySelector('#backBtn').addEventListener('click', () => {
+      resultSection.classList.remove('show');
+      document.querySelector('#step1').className = 'step active';
+      document.querySelector('#step2').className = 'step';
+      transcript.focus();
+    });
+
+    document.querySelector('#notQuiteBtn').addEventListener('click', () => {
+      resultSection.classList.remove('show');
+      document.querySelector('#step1').className = 'step active';
+      document.querySelector('#step2').className = 'step';
+      transcript.focus();
+      showToast('没关系，改一改或再说一点。');
+    });
+
+    document.querySelector('#confirmBtn').addEventListener('click', () => {
+      outputBar.classList.add('show');
+      document.querySelector('#step2').className = 'step done';
+      document.querySelector('#step3').className = 'step active';
+      outputBar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+
+    document.querySelector('#copyBtn').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(polishedText.textContent);
+        document.querySelector('#step3').className = 'step done';
+        showToast('已经复制，可以粘贴到作业或文档里。');
+      } catch (_) {
+        showToast('没有自动复制成功，请选中文字手动复制。');
+      }
+    });
+  </script>
+</body>
+</html>
