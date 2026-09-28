@@ -8,7 +8,19 @@
 - 1.54 英寸 ST7789 TFT。
 - CH340K USB 串口，当前为 COM5。
 - 720 mAh 电池和外接扬声器。
-- 麦克风、按键、显示和音频 GPIO 待供应商资料确认。
+- 对应开源板型：`xingzhi-cube-1.54tft-wifi`。
+
+## 已确认引脚
+
+```text
+麦克风 I2S: WS=4, SCK=5, DIN=6
+扬声器 I2S: DOUT=7, BCLK=15, LRCK=16
+按键: BOOT=0, VOL+=40, VOL-=39
+ST7789: MOSI=10, SCLK=9, DC=8, CS=14, RST=18, BL=13
+电源保持=21, 充电状态=38
+```
+
+参考实现：[xingzhi-cube-1.54tft-wifi](https://github.com/78/xiaozhi-esp32/tree/main/main/boards/nologo/xingzhi-cube-1.54tft-wifi)。
 
 ## 计划模块
 
