@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#102653" />
+  <title>慢慢说 · 项目工作台</title>
+  <style>
+    :root {
+      --navy:#102653; --blue:#2f67f6; --sky:#e9f0ff; --ink:#17213a;
+      --muted:#66718a; --paper:#fff; --line:#dce3f0; --bg:#f4f7fb;
+      --amber:#ffca55; --green:#1f9d70; --radius:22px;
+      font-family:"Microsoft YaHei UI","PingFang SC",system-ui,sans-serif;
+    }
+    *{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;background:var(--bg);color:var(--ink)}
+    a{color:inherit}.shell{width:min(1200px,calc(100% - 32px));margin:auto}
+    header{position:sticky;top:0;z-index:5;background:rgba(244,247,251,.9);backdrop-filter:blur(15px);border-bottom:1px solid rgba(220,227,240,.8)}
+    .topbar{height:72px;display:flex;align-items:center;justify-content:space-between;gap:18px}
+    .brand{font-weight:900;font-size:1.2rem;display:flex;align-items:center;gap:10px}.mark{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;background:var(--blue);color:white}
+    nav{display:flex;gap:6px;overflow:auto}nav a{text-decoration:none;padding:9px 12px;border-radius:10px;color:var(--muted);font-weight:700;font-size:.9rem;white-space:nowrap}nav a:hover{background:white;color:var(--blue)}
+    main{padding:42px 0 64px}.hero{background:var(--navy);color:white;border-radius:30px;padding:42px;position:relative;overflow:hidden;box-shadow:0 24px 54px rgba(16,38,83,.2)}
+    .hero:after{content:"";position:absolute;width:360px;height:360px;border:70px solid rgba(255,255,255,.06);border-radius:50%;right:-140px;top:-130px}
+    .eyebrow{font-size:.82rem;font-weight:850;letter-spacing:.09em;color:#9fbcff}.hero h1{font-size:clamp(2rem,6vw,4.2rem);margin:10px 0 14px;letter-spacing:-.055em;line-height:1.05}.hero p{max-width:680px;color:#cedaff;line-height:1.8;font-size:1.08rem;margin:0}
+    .hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}.btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;border-radius:13px;padding:12px 17px;font-weight:850}.btn.primary{background:var(--amber);color:#4a3500}.btn.ghost{border:1px solid rgba(255,255,255,.24);color:white}
+    .status-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:20px;overflow:hidden;margin:22px 0 34px}.phase{background:white;padding:20px}.phase small{color:var(--muted);font-weight:800}.phase strong{display:block;margin-top:7px}.phase .bar{height:6px;background:#e8edf6;border-radius:9px;margin-top:14px;overflow:hidden}.phase .bar i{display:block;height:100%;background:var(--blue);border-radius:9px}.phase.future .bar i{background:#b8c1d2}
+    section{scroll-margin-top:92px;margin-top:34px}.section-head{display:flex;justify-content:space-between;align-items:end;gap:18px;margin-bottom:16px}.section-head h2{margin:0;font-size:1.6rem;letter-spacing:-.03em}.section-head p{margin:0;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}.card{background:white;border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:0 10px 28px rgba(38,57,99,.06)}.span4{grid-column:span 4}.span6{grid-column:span 6}.span8{grid-column:span 8}.span12{grid-column:span 12}
+    .card h3{margin:0 0 10px;font-size:1.07rem}.card p{color:var(--muted);line-height:1.7;margin:0}.number{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:var(--sky);color:var(--blue);font-weight:900;margin-bottom:16px}
+    .tag{display:inline-block;padding:5px 9px;border-radius:999px;background:#e9f8f2;color:#157252;font-size:.78rem;font-weight:850}.tag.draft{background:#fff4d7;color:#7b5d0b}
+    .requirement{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid #edf0f6}.requirement:last-child{border-bottom:0}.check{flex:0 0 24px;width:24px;height:24px;border-radius:8px;background:#dff6ed;color:var(--green);display:grid;place-items:center;font-weight:900}.requirement strong{display:block}.requirement span{display:block;color:var(--muted);margin-top:4px;font-size:.9rem;line-height:1.5}
+    .prototype{background:linear-gradient(145deg,#edf3ff,#fff);display:grid;grid-template-columns:1.2fr .8fr;gap:24px;align-items:center}.device{background:#18295a;border-radius:24px;padding:16px;box-shadow:0 18px 32px rgba(20,39,85,.2);transform:rotate(2deg)}.screen{background:#f9fbff;border-radius:14px;padding:18px;min-height:170px}.screen small{color:#5871b8;font-weight:850}.screen p{color:#202b48;font-weight:750;line-height:1.7}.keys{display:flex;gap:9px;margin-top:12px}.key{height:12px;border-radius:20px;background:#4966ad;flex:1}.key.main{background:var(--amber);flex:1.5}
+    .matrix{width:100%;border-collapse:collapse;margin-top:10px}.matrix th,.matrix td{text-align:left;padding:12px 10px;border-bottom:1px solid #e8ecf3;font-size:.91rem}.matrix th{color:var(--muted);font-size:.8rem}.matrix td:last-child{font-weight:800;color:var(--blue)}
+    .flow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:16px}.flow span{padding:9px 11px;border-radius:10px;background:var(--sky);color:#244da9;font-weight:780;font-size:.86rem}.flow b{color:#9aa5b8}
+    .note{border-left:4px solid var(--amber);padding-left:14px;margin-top:16px;color:var(--muted);line-height:1.7}.footer{margin-top:46px;color:var(--muted);font-size:.88rem;display:flex;justify-content:space-between;gap:16px}
+    @media(max-width:820px){.topbar{height:auto;padding:14px 0;align-items:flex-start;flex-direction:column}.hero{padding:28px}.status-strip{grid-template-columns:1fr}.span4,.span6,.span8{grid-column:span 12}.prototype{grid-template-columns:1fr}nav{width:100%}}
+  </style>
+</head>
+<body>
+  <header><div class="shell topbar"><div class="brand"><span class="mark">说</span>慢慢说 · 项目工作台</div><nav><a href="#requirements">需求</a><a href="#prototype">原型</a><a href="#hardware">硬件</a><a href="#firmware">固件</a></nav></div></header>
+  <main class="shell">
+    <section class="hero">
+      <div class="eyebrow">MANMANSHUO · PRODUCT HUB</div>
+      <h1>你慢慢说，<br>我帮你把想法看清楚。</h1>
+      <p>帮助需要更多思考时间、不擅长键盘输入的孩子，把自己的语言整理成自己认可的文字。这里记录每一项需求、验证和工程决定。</p>
+      <div class="hero-actions"><a class="btn primary" href="prototype/">体验当前原型 →</a><a class="btn ghost" href="#requirements">查看已确认需求</a></div>
+    </section>
+
+    <div class="status-strip" aria-label="项目阶段">
+      <div class="phase"><small>阶段 01</small><strong>表达体验验证</strong><div class="bar"><i style="width:68%"></i></div></div>
+      <div class="phase future"><small>阶段 02</small><strong>硬件比较与选型</strong><div class="bar"><i style="width:18%"></i></div></div>
+      <div class="phase future"><small>阶段 03</small><strong>可烧录固件</strong><div class="bar"><i style="width:8%"></i></div></div>
+    </div>
+
+    <section id="requirements">
+      <div class="section-head"><div><span class="tag">已确认方向</span><h2>孩子需要的不是代写，而是表达支架</h2></div><p>最后更新：第一版</p></div>
+      <div class="grid">
+        <article class="card span4"><div class="number">1</div><h3>允许思考</h3><p>停顿不等于说完。设备需要明确告诉孩子：我还在等你。</p></article>
+        <article class="card span4"><div class="number">2</div><h3>保留原意</h3><p>AI 可以去掉重复和口头语，但不能添加孩子没有表达过的观点。</p></article>
+        <article class="card span4"><div class="number">3</div><h3>孩子确认</h3><p>整理稿只有经过孩子确认，才会成为最终输出的文字。</p></article>
+        <article class="card span6">
+          <h3>第一阶段必须具备</h3>
+          <div class="requirement"><span class="check">✓</span><div><strong>一次操作开始表达</strong><span>不让复杂设置打断孩子的思路。</span></div></div>
+          <div class="requirement"><span class="check">✓</span><div><strong>原话与整理稿对照</strong><span>孩子能看见文字为何发生变化。</span></div></div>
+          <div class="requirement"><span class="check">✓</span><div><strong>继续补充和撤回</strong><span>整理错误时不必整段重新开始。</span></div></div>
+        </article>
+        <article class="card span6">
+          <h3>明确不做</h3>
+          <div class="requirement"><span class="check">×</span><div><strong>自动生成完整作文</strong><span>产品不能代替孩子形成观点。</span></div></div>
+          <div class="requirement"><span class="check">×</span><div><strong>表达能力评分排名</strong><span>不增加羞耻感和表现压力。</span></div></div>
+          <div class="requirement"><span class="check">×</span><div><strong>默认长期保存录音</strong><span>儿童数据遵循最小化原则。</span></div></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="prototype">
+      <div class="section-head"><div><span class="tag">可以体验</span><h2>Web 原型</h2></div><p>说 → 等待 → 整理 → 确认</p></div>
+      <article class="card prototype">
+        <div><h3>先验证行为，再制造硬件</h3><p>当前版本支持三种整理方式、允许停顿、原话与整理稿对照，以及孩子主动确认。家庭测试的目标不是追求最高识别率，而是观察它是否真的降低表达压力。</p><div class="flow"><span>说出来</span><b>→</b><span>慢慢想</span><b>→</b><span>看对照</span><b>→</b><span>自己确认</span></div><p class="note">下一次测试重点：孩子会不会认真阅读整理稿，以及更喜欢安静等待还是温和提示。</p></div>
+        <div class="device" aria-hidden="true"><div class="screen"><small>我还在等你</small><p>想不出来时可以停一下，想好以后继续说。</p></div><div class="keys"><i class="key"></i><i class="key main"></i><i class="key"></i></div></div>
+      </article>
+    </section>
+
+    <section id="hardware">
+      <div class="section-head"><div><span class="tag draft">准备选型</span><h2>硬件决策</h2></div><p>不提前锁定芯片</p></div>
+      <div class="grid">
+        <article class="card span8"><h3>选型权重</h3><table class="matrix"><thead><tr><th>维度</th><th>验证重点</th><th>权重</th></tr></thead><tbody><tr><td>中文显示</td><td>3–6 行清晰可读</td><td>15%</td></tr><tr><td>语音采集</td><td>0.3–1.5 米近讲稳定</td><td>15%</td></tr><tr><td>交互延迟</td><td>按下后 500 ms 内响应</td><td>15%</td></tr><tr><td>连接能力</td><td>BLE、USB、Wi-Fi</td><td>15%</td></tr><tr><td>开发成熟度</td><td>驱动、OTA、社区资料</td><td>15%</td></tr></tbody></table></article>
+        <article class="card span4"><h3>当前暂定</h3><p>第一代优先采用桌面形态，放在键盘旁边。这样更容易验证屏幕阅读、麦克风距离、实体按键和文字输出。</p><p class="note">候选方向：ESP32-S3、带 NPU 的 Linux SOM，以及低功耗控制器配合手机或云端计算。</p></article>
+      </div>
+    </section>
+
+    <section id="firmware">
+      <div class="section-head"><div><span class="tag draft">架构草案</span><h2>固件路线</h2></div><p>硬件确定后进入实现</p></div>
+      <div class="grid">
+        <article class="card span4"><h3>输入层</h3><p>麦克风采集、物理按键、旋钮和录音状态。任何时候都必须让使用者知道设备是否在听。</p></article>
+        <article class="card span4"><h3>表达状态机</h3><p>待机、倾听、等待思考、转写、整理、确认和输出。继续补充可以回到倾听状态。</p></article>
+        <article class="card span4"><h3>输出与升级</h3><p>通过 USB/BLE HID 输入文字；固件支持安全升级、失败回滚与恢复模式。</p></article>
+      </div>
+    </section>
+
+    <div class="footer"><span>慢慢说 · 开放式产品研发记录</span><span>需求确认 → 更新网页 → 同步 GitHub</span></div>
+  </main>
+</body>
+</html>

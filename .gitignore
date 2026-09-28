@@ -1,0 +1,16 @@
+# Local preview and packaging
+.sites-runtime/
+_site/
+*.tar
+*.tar.gz
+
+# Firmware build output
+firmware/.pio/
+firmware/build/
+firmware/sdkconfig.old
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
