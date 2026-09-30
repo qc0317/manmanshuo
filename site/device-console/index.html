@@ -23,13 +23,14 @@
   <main>
     <div class="top"><span class="tag">MANMANSHUO · USB DEBUG</span><a href="../">返回工作台</a></div>
     <h1>设备控制台</h1>
-    <p class="lead">用网页虚拟按键驱动设备状态。当前调试协议只包含“开始倾听”和“结束倾听”，以后可继续加入确认、撤回和模式切换。</p>
+    <p class="lead">用网页虚拟按键驱动设备状态。设备会在 PSRAM 中保存最长 30 秒的临时录音，并把真实录音时长回传到这里。</p>
     <section class="panel">
       <div class="status"><i class="dot" id="dot"></i><strong id="status">尚未连接设备</strong><button class="connect" id="connect">连接 USB 设备</button></div>
       <div class="controls">
         <button class="control start" id="start" disabled>开始倾听</button>
         <button class="control end" id="end" disabled>结束并处理</button>
       </div>
+      <p class="hint" id="capture">尚无录音结果</p>
       <p class="hint">请使用支持 Web Serial 的 Chrome 或 Edge，并在弹窗中选择 CH340 对应端口。网页不会上传串口内容；通信只发生在本机浏览器与 USB 设备之间。</p>
       <pre id="log" aria-live="polite">等待连接…</pre>
     </section>
@@ -39,12 +40,20 @@
     const startButton=document.querySelector('#start');
     const endButton=document.querySelector('#end');
     const statusText=document.querySelector('#status');
+    const capture=document.querySelector('#capture');
     const dot=document.querySelector('#dot');
     const log=document.querySelector('#log');
-    let port,writer,reader;
+    let port,writer,reader,receiveBuffer='';
     const append=text=>{log.textContent+=text;log.scrollTop=log.scrollHeight};
     const connected=value=>{startButton.disabled=!value;endButton.disabled=!value;dot.classList.toggle('on',value);statusText.textContent=value?'设备已连接':'尚未连接设备';connectButton.textContent=value?'断开连接':'连接 USB 设备'};
-    async function readLoop(){const decoder=new TextDecoder();try{while(port&&port.readable){reader=port.readable.getReader();try{for(;;){const {value,done}=await reader.read();if(done)break;if(value)append(decoder.decode(value,{stream:true}))}}finally{reader.releaseLock();reader=null}}}catch(error){append(`\n[读取结束] ${error.message}\n`)}}
+    function handleLine(line){
+      if(line.includes('MM:STATE LISTENING'))statusText.textContent='设备已连接 · 正在倾听';
+      if(line.includes('MM:STATE PROCESSING'))statusText.textContent='设备已连接 · 正在处理';
+      if(line.includes('MM:STATE IDLE'))statusText.textContent='设备已连接 · 待机';
+      const result=line.match(/MM:CAPTURE samples=(\d+) duration_ms=(\d+) full=(\d+)/);
+      if(result)capture.textContent=`已捕获 ${(Number(result[2])/1000).toFixed(1)} 秒音频，共 ${Number(result[1]).toLocaleString()} 个样本${result[3]==='1'?'（已到 30 秒上限）':''}`;
+    }
+    async function readLoop(){const decoder=new TextDecoder();try{while(port&&port.readable){reader=port.readable.getReader();try{for(;;){const {value,done}=await reader.read();if(done)break;if(value){const text=decoder.decode(value,{stream:true});append(text);receiveBuffer+=text;const lines=receiveBuffer.split(/\r?\n/);receiveBuffer=lines.pop();lines.forEach(handleLine)}}}finally{reader.releaseLock();reader=null}}}catch(error){append(`\n[读取结束] ${error.message}\n`)}}
     async function send(command){if(!writer)return;await writer.write(new TextEncoder().encode(command+'\n'));append(`\n> ${command==='S'?'开始倾听':'结束倾听'}\n`)}
     connectButton.addEventListener('click',async()=>{try{if(port){if(reader)await reader.cancel();writer?.releaseLock();writer=null;await port.close();port=null;connected(false);return}if(!('serial'in navigator))throw new Error('当前浏览器不支持 Web Serial，请使用 Chrome 或 Edge');port=await navigator.serial.requestPort();await port.open({baudRate:115200});writer=port.writable.getWriter();log.textContent='已连接，等待设备信息…\n';connected(true);readLoop()}catch(error){append(`\n[连接失败] ${error.message}\n`);if(!port)connected(false)}});
     startButton.addEventListener('click',()=>send('S'));

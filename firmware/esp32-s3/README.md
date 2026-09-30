@@ -25,6 +25,8 @@
 
 项目工作台的 `device-console/` 页面使用 Web Serial 发送上述事件。未来更换触摸屏、旋钮或其他开发板时，只需要替换输入适配层，不必重写表达状态机。
 
+设备通过串口回传 `MM:STATE IDLE/LISTENING/PROCESSING`，录音结束后回传 `MM:CAPTURE`、样本数和时长。倾听期间的 16 kHz、16 位单声道 PCM 暂存在 PSRAM，当前安全上限为 30 秒；断电后不会保留。
+
 ## 构建与烧录
 
 需要 ESP-IDF 6.x：

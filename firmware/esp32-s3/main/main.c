@@ -39,6 +39,10 @@
 #define PIN_MIC_SCLK 5
 #define PIN_MIC_DIN 6
 
+#define AUDIO_SAMPLE_RATE 16000
+#define MAX_RECORDING_SECONDS 30
+#define MAX_RECORDING_SAMPLES (AUDIO_SAMPLE_RATE * MAX_RECORDING_SECONDS)
+
 #define RGB565(r, g, b) (uint16_t)((((r) & 0xF8) << 8) | (((g) & 0xFC) << 3) | ((b) >> 3))
 
 static const char *TAG = "manmanshuo";
@@ -51,6 +55,9 @@ static uint32_t mic_diag_signal;
 static unsigned mic_diag_warmup;
 static unsigned mic_diag_calibration;
 static uint16_t *framebuffer;
+static int16_t *recording_buffer;
+static size_t recording_samples;
+static bool recording_full;
 
 typedef struct {
     char c;
@@ -199,7 +206,7 @@ static void init_microphone(void)
     ESP_ERROR_CHECK(i2s_new_channel(&channel_config, NULL, &mic_rx));
 
     i2s_std_config_t mic_config = {
-        .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(16000),
+        .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(AUDIO_SAMPLE_RATE),
         .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(
             I2S_DATA_BIT_WIDTH_32BIT, I2S_SLOT_MODE_MONO),
         .gpio_cfg = {
@@ -220,7 +227,7 @@ static void init_microphone(void)
     ESP_ERROR_CHECK(i2s_channel_enable(mic_rx));
 }
 
-static unsigned microphone_level(void)
+static unsigned microphone_level(bool capture_audio)
 {
     int32_t samples[256];
     static unsigned warmup_count = 0;
@@ -242,6 +249,16 @@ static unsigned microphone_level(void)
         int64_t value = samples[i] >> 12;
         if (value < 0) value = -value;
         total += (uint32_t)value;
+
+        if (capture_audio && recording_samples < MAX_RECORDING_SAMPLES) {
+            int32_t pcm = samples[i] >> 14;
+            if (pcm > INT16_MAX) pcm = INT16_MAX;
+            if (pcm < INT16_MIN) pcm = INT16_MIN;
+            recording_buffer[recording_samples++] = (int16_t)pcm;
+        } else if (capture_audio && !recording_full) {
+            recording_full = true;
+            ESP_LOGW(TAG, "recording reached %d second limit", MAX_RECORDING_SECONDS);
+        }
     }
 
     uint32_t average = count ? (uint32_t)(total / count) : 0;
@@ -337,8 +354,14 @@ void app_main(void)
     framebuffer = heap_caps_malloc(LCD_WIDTH * LCD_HEIGHT * sizeof(uint16_t),
                                    MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
     ESP_ERROR_CHECK(framebuffer ? ESP_OK : ESP_ERR_NO_MEM);
+    recording_buffer = heap_caps_malloc(MAX_RECORDING_SAMPLES * sizeof(int16_t),
+                                        MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    ESP_ERROR_CHECK(recording_buffer ? ESP_OK : ESP_ERR_NO_MEM);
     ESP_LOGI(TAG, "stage 3: framebuffer ready (%u bytes)",
              LCD_WIDTH * LCD_HEIGHT * (unsigned)sizeof(uint16_t));
+    ESP_LOGI(TAG, "audio buffer ready (%u bytes, %d seconds)",
+             (unsigned)(MAX_RECORDING_SAMPLES * sizeof(int16_t)),
+             MAX_RECORDING_SECONDS);
 
     fill_rect(0, 0, LCD_WIDTH, LCD_HEIGHT, RGB565(246, 243, 235));
     fill_rect(0, 0, LCD_WIDTH, 8, RGB565(245, 151, 79));
@@ -365,6 +388,8 @@ void app_main(void)
     unsigned log_counter = 0;
     fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
     ESP_LOGI(TAG, "virtual controls ready: S=start E=end");
+    printf("MM:STATE IDLE\n");
+    fflush(stdout);
     while (true) {
         int command;
         while ((command = getchar()) != EOF) {
@@ -387,13 +412,25 @@ void app_main(void)
             draw_button(0, main_pressed, RGB565(245, 151, 79), "MAIN");
             if (main_pressed) {
                 recording = true;
+                recording_samples = 0;
+                recording_full = false;
                 old_level = UINT32_MAX;
+                ESP_LOGI(TAG, "recording started");
+                printf("MM:STATE LISTENING\n");
+                fflush(stdout);
                 draw_voice_state("LISTEN", "SPEAK", RGB565(39, 145, 108), true);
                 draw_button(0, true, RGB565(245, 151, 79), "MAIN");
                 draw_button(80, up_pressed, RGB565(39, 145, 108), "UP");
                 draw_button(160, down_pressed, RGB565(74, 120, 220), "DOWN");
             } else if (recording) {
                 recording = false;
+                uint32_t duration_ms = (uint32_t)(recording_samples * 1000 / AUDIO_SAMPLE_RATE);
+                ESP_LOGI(TAG, "recording captured samples=%u duration_ms=%" PRIu32 " full=%d",
+                         (unsigned)recording_samples, duration_ms, recording_full);
+                printf("MM:CAPTURE samples=%u duration_ms=%" PRIu32 " full=%d\n",
+                       (unsigned)recording_samples, duration_ms, recording_full);
+                printf("MM:STATE PROCESSING\n");
+                fflush(stdout);
                 draw_voice_state("CAPTURED", "PROCESS", RGB565(245, 151, 79), false);
                 draw_button(0, false, RGB565(245, 151, 79), "MAIN");
                 draw_button(80, up_pressed, RGB565(39, 145, 108), "UP");
@@ -404,6 +441,8 @@ void app_main(void)
                 draw_button(0, false, RGB565(245, 151, 79), "MAIN");
                 draw_button(80, up_pressed, RGB565(39, 145, 108), "UP");
                 draw_button(160, down_pressed, RGB565(74, 120, 220), "DOWN");
+                printf("MM:STATE IDLE\n");
+                fflush(stdout);
             }
         }
         if (up_pressed != old_up) draw_button(80, up_pressed, RGB565(39, 145, 108), "UP");
@@ -417,7 +456,7 @@ void app_main(void)
         old_up = up_pressed;
         old_down = down_pressed;
 
-        unsigned level = microphone_level();
+        unsigned level = microphone_level(recording);
         bool level_changed = recording && level != old_level;
         if (level_changed) {
             draw_microphone_meter(level);
