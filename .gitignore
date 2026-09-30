@@ -8,8 +8,11 @@ _site/
 
 # Firmware build output
 firmware/.pio/
+firmware/**/.pio/
 firmware/build/
 firmware/sdkconfig.old
+firmware/**/sdkconfig.*
+!firmware/**/sdkconfig.defaults
 
 # Editor and OS files
 .vscode/

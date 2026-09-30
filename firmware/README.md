@@ -2,25 +2,29 @@
 
 第一台样机平台已确定为 ESP32-S3 N16R8。当前先核对开发板引脚和原固件分区，再初始化具体 ESP-IDF 工程。
 
+## 第一版可烧录程序
+
+`esp32-s3/` 是当前正辰 1.54 英寸 ESP32-S3 N16R8 设备的硬件验证程序。它先验证屏幕、供电保持和三个实体按键，再逐步加入录音、语音识别与文字确认流程。
+
 ## 已确认的样机硬件
 
 - ESP32-S3，16 MB Flash，8 MB PSRAM。
 - 1.54 英寸 ST7789 TFT。
 - CH340K USB 串口，当前为 COM5。
 - 720 mAh 电池和外接扬声器。
-- 对应开源板型：`xingzhi-cube-1.54tft-wifi`。
+- 对应开源板型：`zhengchen/1.54tft-wifi`。
 
 ## 已确认引脚
 
 ```text
 麦克风 I2S: WS=4, SCK=5, DIN=6
 扬声器 I2S: DOUT=7, BCLK=15, LRCK=16
-按键: BOOT=0, VOL+=40, VOL-=39
-ST7789: MOSI=10, SCLK=9, DC=8, CS=14, RST=18, BL=13
-电源保持=21, 充电状态=38
+按键: BOOT=0, VOL+=10, VOL-=39
+ST7789: MOSI=41, SCLK=42, DC=40, CS=21, RST=45, BL=20
+电源保持=2, 电池/充电检测=9
 ```
 
-参考实现：[xingzhi-cube-1.54tft-wifi](https://github.com/78/xiaozhi-esp32/tree/main/main/boards/nologo/xingzhi-cube-1.54tft-wifi)。
+参考实现：[zhengchen/1.54tft-wifi](https://github.com/78/xiaozhi-esp32/tree/main/main/boards/zhengchen/1.54tft-wifi)。板型由原厂 Flash 备份中的程序标识交叉确认；屏幕红、绿、蓝、白循环测试已在样机通过。
 
 ## 计划模块
 
