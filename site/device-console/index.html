@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>慢慢说 · 设备控制台</title>
+  <style>
+    :root{color-scheme:light;--ink:#252a3a;--muted:#686f85;--paper:#f7f3ea;--card:#fff;--green:#27916c;--orange:#f5974f;--blue:#4a78dc;--line:#ded9ce}
+    *{box-sizing:border-box} body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,"Microsoft YaHei",sans-serif}
+    main{width:min(760px,calc(100% - 32px));margin:40px auto} a{color:var(--blue)}
+    .top{display:flex;justify-content:space-between;align-items:center;gap:16px}.tag{color:var(--muted);font-size:14px;letter-spacing:.08em}
+    h1{margin:12px 0 8px;font-size:clamp(30px,7vw,54px)} .lead{color:var(--muted);line-height:1.7;margin:0 0 28px}
+    .panel{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:24px;box-shadow:0 14px 40px #4d463312}
+    .status{display:flex;align-items:center;gap:10px;margin-bottom:22px}.dot{width:12px;height:12px;border-radius:50%;background:#a7abb7}.dot.on{background:var(--green);box-shadow:0 0 0 6px #27916c1f}
+    button{font:inherit;border:0;border-radius:16px;cursor:pointer}.connect{padding:11px 18px;background:var(--ink);color:white}.connect:disabled{opacity:.5}
+    .controls{display:grid;grid-template-columns:1fr 1fr;gap:14px}.control{min-height:118px;color:white;font-size:22px;font-weight:700}.start{background:var(--green)}.end{background:var(--orange)}
+    .control:disabled{filter:grayscale(.8);opacity:.42;cursor:not-allowed}.hint{font-size:14px;color:var(--muted);line-height:1.6;margin:18px 0 0}
+    pre{margin:22px 0 0;background:#252a3a;color:#dfe5f4;border-radius:16px;padding:16px;height:180px;overflow:auto;white-space:pre-wrap;font-size:12px}
+    @media(max-width:520px){main{margin:24px auto}.top{align-items:flex-start}.controls{grid-template-columns:1fr}.panel{padding:18px}}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="top"><span class="tag">MANMANSHUO · USB DEBUG</span><a href="../">返回工作台</a></div>
+    <h1>设备控制台</h1>
+    <p class="lead">用网页虚拟按键驱动设备状态。当前调试协议只包含“开始倾听”和“结束倾听”，以后可继续加入确认、撤回和模式切换。</p>
+    <section class="panel">
+      <div class="status"><i class="dot" id="dot"></i><strong id="status">尚未连接设备</strong><button class="connect" id="connect">连接 USB 设备</button></div>
+      <div class="controls">
+        <button class="control start" id="start" disabled>开始倾听</button>
+        <button class="control end" id="end" disabled>结束并处理</button>
+      </div>
+      <p class="hint">请使用支持 Web Serial 的 Chrome 或 Edge，并在弹窗中选择 CH340 对应端口。网页不会上传串口内容；通信只发生在本机浏览器与 USB 设备之间。</p>
+      <pre id="log" aria-live="polite">等待连接…</pre>
+    </section>
+  </main>
+  <script>
+    const connectButton=document.querySelector('#connect');
+    const startButton=document.querySelector('#start');
+    const endButton=document.querySelector('#end');
+    const statusText=document.querySelector('#status');
+    const dot=document.querySelector('#dot');
+    const log=document.querySelector('#log');
+    let port,writer,reader;
+    const append=text=>{log.textContent+=text;log.scrollTop=log.scrollHeight};
+    const connected=value=>{startButton.disabled=!value;endButton.disabled=!value;dot.classList.toggle('on',value);statusText.textContent=value?'设备已连接':'尚未连接设备';connectButton.textContent=value?'断开连接':'连接 USB 设备'};
+    async function readLoop(){const decoder=new TextDecoder();try{while(port&&port.readable){reader=port.readable.getReader();try{for(;;){const {value,done}=await reader.read();if(done)break;if(value)append(decoder.decode(value,{stream:true}))}}finally{reader.releaseLock();reader=null}}}catch(error){append(`\n[读取结束] ${error.message}\n`)}}
+    async function send(command){if(!writer)return;await writer.write(new TextEncoder().encode(command+'\n'));append(`\n> ${command==='S'?'开始倾听':'结束倾听'}\n`)}
+    connectButton.addEventListener('click',async()=>{try{if(port){if(reader)await reader.cancel();writer?.releaseLock();writer=null;await port.close();port=null;connected(false);return}if(!('serial'in navigator))throw new Error('当前浏览器不支持 Web Serial，请使用 Chrome 或 Edge');port=await navigator.serial.requestPort();await port.open({baudRate:115200});writer=port.writable.getWriter();log.textContent='已连接，等待设备信息…\n';connected(true);readLoop()}catch(error){append(`\n[连接失败] ${error.message}\n`);if(!port)connected(false)}});
+    startButton.addEventListener('click',()=>send('S'));
+    endButton.addEventListener('click',()=>send('E'));
+  </script>
+</body>
+</html>

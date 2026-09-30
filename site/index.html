@@ -42,13 +42,13 @@
       <div class="eyebrow">MANMANSHUO · PRODUCT HUB</div>
       <h1>你慢慢说，<br>我帮你把想法看清楚。</h1>
       <p>帮助需要更多思考时间、不擅长键盘输入的孩子，把自己的语言整理成自己认可的文字。这里记录每一项需求、验证和工程决定。</p>
-      <div class="hero-actions"><a class="btn primary" href="prototype/">体验当前原型 →</a><a class="btn ghost" href="#requirements">查看已确认需求</a></div>
+      <div class="hero-actions"><a class="btn primary" href="prototype/">体验当前原型 →</a><a class="btn ghost" href="device-console/">打开设备控制台</a></div>
     </section>
 
     <div class="status-strip" aria-label="项目阶段">
       <div class="phase"><small>阶段 01</small><strong>表达体验验证</strong><div class="bar"><i style="width:68%"></i></div></div>
-      <div class="phase"><small>阶段 02</small><strong>样机硬件已确定</strong><div class="bar"><i style="width:62%"></i></div></div>
-      <div class="phase future"><small>阶段 03</small><strong>可烧录固件</strong><div class="bar"><i style="width:16%"></i></div></div>
+      <div class="phase"><small>阶段 02</small><strong>样机硬件已验证</strong><div class="bar"><i style="width:100%"></i></div></div>
+      <div class="phase"><small>阶段 03</small><strong>可烧录固件</strong><div class="bar"><i style="width:48%"></i></div></div>
     </div>
 
     <section id="requirements">
@@ -84,15 +84,15 @@
       <div class="section-head"><div><span class="tag">样机已连接</span><h2>硬件决策</h2></div><p>ESP32-S3 N16R8 · COM5</p></div>
       <div class="grid">
         <article class="card span8"><h3>选型权重</h3><table class="matrix"><thead><tr><th>维度</th><th>验证重点</th><th>权重</th></tr></thead><tbody><tr><td>中文显示</td><td>3–6 行清晰可读</td><td>15%</td></tr><tr><td>语音采集</td><td>0.3–1.5 米近讲稳定</td><td>15%</td></tr><tr><td>交互延迟</td><td>按下后 500 ms 内响应</td><td>15%</td></tr><tr><td>连接能力</td><td>BLE、USB、Wi-Fi</td><td>15%</td></tr><tr><td>开发成熟度</td><td>驱动、OTA、社区资料</td><td>15%</td></tr></tbody></table></article>
-        <article class="card span4"><h3>第一台样机</h3><p>采用现有 ESP32-S3 N16R8 小设备：16 MB Flash、8 MB PSRAM、240×240 ST7789 彩屏、CH340K、720 mAh 电池和扬声器。</p><p class="note">已找到开源板型 xingzhi-cube-1.54tft-wifi 及完整 GPIO 定义。下一步进入下载模式并先备份原固件。</p></article>
+        <article class="card span4"><h3>第一台样机</h3><p>采用现有 ESP32-S3 N16R8 小设备：16 MB Flash、8 MB PSRAM、240×240 ST7789 彩屏、CH340K、720 mAh 电池和扬声器。</p><p class="note">已确认正辰 1.54 TFT Wi-Fi 板型并完成原固件备份；屏幕、三个按键和 INMP441 麦克风均已通过实机验证。</p></article>
       </div>
     </section>
 
     <section id="firmware">
-      <div class="section-head"><div><span class="tag draft">准备开发</span><h2>固件路线</h2></div><p>先核对引脚与下载模式</p></div>
+      <div class="section-head"><div><span class="tag">实机运行中</span><h2>固件路线</h2></div><p>按住说话交互已通过</p></div>
       <div class="grid">
-        <article class="card span4"><h3>输入层</h3><p>麦克风采集、物理按键、旋钮和录音状态。任何时候都必须让使用者知道设备是否在听。</p></article>
-        <article class="card span4"><h3>表达状态机</h3><p>待机、倾听、等待思考、转写、整理、确认和输出。继续补充可以回到倾听状态。</p></article>
+        <article class="card span4"><h3>输入层 · 已验证</h3><p>屏幕、三个实体按键和麦克风输入已打通。麦克风电平灵敏度仍会结合真实房间环境继续微调。</p></article>
+        <article class="card span4"><h3>表达状态机 · 进行中</h3><p>已实现待机、倾听、处理和返回待机，并把输入抽象为统一事件。网页虚拟键、当前实体键和未来触摸屏可以自由映射。</p><p class="note"><a href="device-console/">打开 USB 虚拟按键控制台 →</a></p></article>
         <article class="card span4"><h3>输出与升级</h3><p>通过 USB/BLE HID 输入文字；固件支持安全升级、失败回滚与恢复模式。</p></article>
       </div>
     </section>

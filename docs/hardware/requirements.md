@@ -1,6 +1,6 @@
 # 硬件需求与选型指标
 
-状态：第一台样机平台已确定，接口仍在核对
+状态：第一台样机平台和主要接口已通过实机验证
 
 ## 先确定的使用形态
 
@@ -40,8 +40,8 @@
 | 电池 | 720 mAh，ZH1.5 接口 |
 | 声音输出 | 外接扬声器，MX1.25 接口 |
 | 扩展 | 预留一路 UART |
-| 开源板型 | `xingzhi-cube-1.54tft-wifi` |
-| 待核对 | 实物硬件版本、原固件分区表 |
+| 开源板型 | `zhengchen/1.54tft-wifi` |
+| 已验证 | 屏幕、三个按键、麦克风输入、下载与恢复路径 |
 
 本样机用于验证表达流程。语音识别和文字整理优先通过 Wi-Fi 交给电脑或云端完成，设备本身负责采集、状态显示、确认操作和结果展示。
 
@@ -52,11 +52,11 @@
 | I2S 麦克风 | WS 4、SCK 5、DIN 6 |
 | I2S 扬声器 | DOUT 7、BCLK 15、LRCK 16 |
 | 中间/BOOT 按键 | 0 |
-| 音量加 | 40 |
+| 音量加 | 10 |
 | 音量减 | 39 |
-| ST7789 屏幕 | MOSI 10、SCLK 9、DC 8、CS 14、RST 18 |
-| 屏幕背光 | 13 |
-| 电源保持 | 21 |
-| 充电状态检测 | 38 |
+| ST7789 屏幕 | MOSI 41、SCLK 42、DC 40、CS 21、RST 45 |
+| 屏幕背光 | 20 |
+| 电源保持 | 2 |
+| 充电状态检测 | 9 |
 
-来源：[78/xiaozhi-esp32 的星智 1.54 TFT Wi-Fi 板级配置](https://github.com/78/xiaozhi-esp32/tree/main/main/boards/nologo/xingzhi-cube-1.54tft-wifi)。首次烧录前仍需用只读测试验证实物版本。
+来源：[78/xiaozhi-esp32 的正辰 1.54 TFT Wi-Fi 板级配置](https://github.com/78/xiaozhi-esp32/tree/main/main/boards/zhengchen/1.54tft-wifi)，并已由原厂固件标识和实机测试交叉确认。

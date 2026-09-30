@@ -1,9 +1,14 @@
 #include <stdbool.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "driver/gpio.h"
+#include "driver/i2s_std.h"
 #include "driver/spi_master.h"
 #include "esp_check.h"
 #include "esp_heap_caps.h"
@@ -30,10 +35,21 @@
 #define PIN_BUTTON_UP 10
 #define PIN_BUTTON_DOWN 39
 
+#define PIN_MIC_WS 4
+#define PIN_MIC_SCLK 5
+#define PIN_MIC_DIN 6
+
 #define RGB565(r, g, b) (uint16_t)((((r) & 0xF8) << 8) | (((g) & 0xFC) << 3) | ((b) >> 3))
 
 static const char *TAG = "manmanshuo";
 static esp_lcd_panel_handle_t panel;
+static i2s_chan_handle_t mic_rx;
+static uint32_t mic_diag_average;
+static uint32_t mic_diag_floor;
+static uint32_t mic_diag_limit;
+static uint32_t mic_diag_signal;
+static unsigned mic_diag_warmup;
+static unsigned mic_diag_calibration;
 static uint16_t *framebuffer;
 
 typedef struct {
@@ -43,15 +59,20 @@ typedef struct {
 
 static const glyph_t font[] = {
     {'A', {0x0E, 0x11, 0x11, 0x1F, 0x11, 0x11, 0x11}},
+    {'C', {0x0F, 0x10, 0x10, 0x10, 0x10, 0x10, 0x0F}},
     {'D', {0x1E, 0x11, 0x11, 0x11, 0x11, 0x11, 0x1E}},
     {'E', {0x1F, 0x10, 0x10, 0x1E, 0x10, 0x10, 0x1F}},
     {'H', {0x11, 0x11, 0x11, 0x1F, 0x11, 0x11, 0x11}},
     {'I', {0x1F, 0x04, 0x04, 0x04, 0x04, 0x04, 0x1F}},
+    {'K', {0x11, 0x12, 0x14, 0x18, 0x14, 0x12, 0x11}},
+    {'L', {0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x1F}},
     {'M', {0x11, 0x1B, 0x15, 0x15, 0x11, 0x11, 0x11}},
     {'N', {0x11, 0x19, 0x15, 0x13, 0x11, 0x11, 0x11}},
     {'O', {0x0E, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0E}},
+    {'P', {0x1E, 0x11, 0x11, 0x1E, 0x10, 0x10, 0x10}},
     {'R', {0x1E, 0x11, 0x11, 0x1E, 0x14, 0x12, 0x11}},
     {'S', {0x0F, 0x10, 0x10, 0x0E, 0x01, 0x01, 0x1E}},
+    {'T', {0x1F, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04}},
     {'U', {0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0E}},
     {'W', {0x11, 0x11, 0x11, 0x15, 0x15, 0x1B, 0x11}},
     {'Y', {0x11, 0x11, 0x0A, 0x04, 0x04, 0x04, 0x04}},
@@ -172,6 +193,139 @@ static void init_display(void)
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel, true));
 }
 
+static void init_microphone(void)
+{
+    i2s_chan_config_t channel_config = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_AUTO, I2S_ROLE_MASTER);
+    ESP_ERROR_CHECK(i2s_new_channel(&channel_config, NULL, &mic_rx));
+
+    i2s_std_config_t mic_config = {
+        .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(16000),
+        .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(
+            I2S_DATA_BIT_WIDTH_32BIT, I2S_SLOT_MODE_MONO),
+        .gpio_cfg = {
+            .mclk = I2S_GPIO_UNUSED,
+            .bclk = PIN_MIC_SCLK,
+            .ws = PIN_MIC_WS,
+            .dout = I2S_GPIO_UNUSED,
+            .din = PIN_MIC_DIN,
+            .invert_flags = {
+                .mclk_inv = false,
+                .bclk_inv = false,
+                .ws_inv = false,
+            },
+        },
+    };
+    mic_config.slot_cfg.slot_mask = I2S_STD_SLOT_LEFT;
+    ESP_ERROR_CHECK(i2s_channel_init_std_mode(mic_rx, &mic_config));
+    ESP_ERROR_CHECK(i2s_channel_enable(mic_rx));
+}
+
+static unsigned microphone_level(void)
+{
+    int32_t samples[256];
+    static unsigned warmup_count = 0;
+    static uint64_t calibration_total = 0;
+    static unsigned calibration_count = 0;
+    static uint32_t noise_floor = 0;
+    static uint32_t smoothed_signal = 0;
+    static uint32_t recent_average[5] = {0};
+    static unsigned recent_index = 0;
+    static unsigned recent_count = 0;
+    size_t bytes_read = 0;
+    esp_err_t err = i2s_channel_read(mic_rx, samples, sizeof(samples),
+                                     &bytes_read, pdMS_TO_TICKS(30));
+    if (err != ESP_OK || bytes_read == 0) return 0;
+
+    uint64_t total = 0;
+    size_t count = bytes_read / sizeof(samples[0]);
+    for (size_t i = 0; i < count; ++i) {
+        int64_t value = samples[i] >> 12;
+        if (value < 0) value = -value;
+        total += (uint32_t)value;
+    }
+
+    uint32_t average = count ? (uint32_t)(total / count) : 0;
+    mic_diag_average = average;
+    if (warmup_count < 64) {
+        ++warmup_count;
+        mic_diag_warmup = warmup_count;
+        return 0;
+    }
+    if (calibration_count < 128) {
+        calibration_total += average;
+        ++calibration_count;
+        noise_floor = (uint32_t)(calibration_total / calibration_count);
+        mic_diag_floor = noise_floor;
+        mic_diag_calibration = calibration_count;
+        return 0;
+    }
+
+    recent_average[recent_index] = average;
+    recent_index = (recent_index + 1) % 5;
+    if (recent_count < 5) ++recent_count;
+
+    uint32_t ordered[5];
+    memcpy(ordered, recent_average, sizeof(ordered));
+    for (unsigned i = 1; i < recent_count; ++i) {
+        uint32_t value = ordered[i];
+        unsigned j = i;
+        while (j > 0 && ordered[j - 1] > value) {
+            ordered[j] = ordered[j - 1];
+            --j;
+        }
+        ordered[j] = value;
+    }
+    uint32_t stable_average = ordered[recent_count / 2];
+
+    // Freeze the startup calibration for this hardware test. The previous
+    // downward-only adaptation let occasional quiet blocks drag the floor
+    // from about 4600 to about 1000, making normal room noise read as 100%.
+    uint32_t quiet_limit = noise_floor * 2;
+    uint32_t signal = stable_average > quiet_limit ? stable_average - quiet_limit : 0;
+    mic_diag_floor = noise_floor;
+    mic_diag_limit = quiet_limit;
+    mic_diag_signal = signal;
+    if (signal > smoothed_signal) {
+        smoothed_signal = (smoothed_signal + signal) / 2;
+    } else {
+        smoothed_signal = smoothed_signal * 3 / 4;
+    }
+
+    uint32_t step = noise_floor / 3;
+    if (step < 100) step = 100;
+    unsigned level = smoothed_signal / step;
+    if (level > 11) level = 11;
+    return level;
+}
+
+static void draw_microphone_meter(unsigned level)
+{
+    const int meter_x = 10;
+    const int meter_y = 112;
+    const int meter_w = 220;
+    const int meter_h = 34;
+    fill_rect(meter_x, meter_y, meter_w, meter_h, RGB565(214, 218, 226));
+    if (level > 0) {
+        int width = (int)level * 20;
+        uint16_t color = level >= 9 ? RGB565(245, 151, 79) : RGB565(39, 145, 108);
+        fill_rect(meter_x, meter_y, width, meter_h, color);
+    }
+}
+
+static void draw_voice_state(const char *title, const char *subtitle,
+                             uint16_t accent, bool show_meter)
+{
+    fill_rect(0, 0, LCD_WIDTH, 188, RGB565(246, 243, 235));
+    fill_rect(0, 0, LCD_WIDTH, 8, accent);
+    draw_text_centered(32, title, 3, RGB565(37, 42, 58));
+    draw_text_centered(76, subtitle, 2, RGB565(91, 98, 118));
+    if (show_meter) {
+        draw_microphone_meter(0);
+    } else {
+        fill_rect(42, 116, 156, 6, accent);
+    }
+}
+
 void app_main(void)
 {
     ESP_LOGI(TAG, "stage 1: power and buttons");
@@ -199,37 +353,86 @@ void app_main(void)
     ESP_ERROR_CHECK(gpio_set_level(PIN_LCD_BL, 1));
     ESP_LOGI(TAG, "stage 5: screen and backlight enabled");
 
+    ESP_LOGI(TAG, "stage 6: microphone init");
+    init_microphone();
+    draw_voice_state("HOLD MAIN", "TO SPEAK", RGB565(74, 120, 220), false);
+    flush_screen();
+
     bool old_main = false, old_up = false, old_down = false;
-    const uint16_t test_colors[] = {
-        RGB565(255, 0, 0),
-        RGB565(0, 255, 0),
-        RGB565(0, 0, 255),
-        RGB565(255, 255, 255),
-    };
-    size_t color_index = 0;
-    TickType_t last_color_change = xTaskGetTickCount();
+    bool virtual_main = false;
+    bool recording = false;
+    unsigned old_level = UINT32_MAX;
+    unsigned log_counter = 0;
+    fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+    ESP_LOGI(TAG, "virtual controls ready: S=start E=end");
     while (true) {
-        bool main_pressed = gpio_get_level(PIN_BUTTON_MAIN) == 0;
+        int command;
+        while ((command = getchar()) != EOF) {
+            if (command == 'S' || command == 's') {
+                virtual_main = true;
+                ESP_LOGI(TAG, "virtual event: start");
+            } else if (command == 'E' || command == 'e') {
+                virtual_main = false;
+                ESP_LOGI(TAG, "virtual event: end");
+            }
+        }
+        clearerr(stdin);
+
+        bool physical_main = gpio_get_level(PIN_BUTTON_MAIN) == 0;
+        bool main_pressed = physical_main || virtual_main;
         bool up_pressed = gpio_get_level(PIN_BUTTON_UP) == 0;
         bool down_pressed = gpio_get_level(PIN_BUTTON_DOWN) == 0;
-        if (main_pressed != old_main) draw_button(0, main_pressed, RGB565(245, 151, 79), "MAIN");
+        bool main_changed = main_pressed != old_main;
+        if (main_changed) {
+            draw_button(0, main_pressed, RGB565(245, 151, 79), "MAIN");
+            if (main_pressed) {
+                recording = true;
+                old_level = UINT32_MAX;
+                draw_voice_state("LISTEN", "SPEAK", RGB565(39, 145, 108), true);
+                draw_button(0, true, RGB565(245, 151, 79), "MAIN");
+                draw_button(80, up_pressed, RGB565(39, 145, 108), "UP");
+                draw_button(160, down_pressed, RGB565(74, 120, 220), "DOWN");
+            } else if (recording) {
+                recording = false;
+                draw_voice_state("CAPTURED", "PROCESS", RGB565(245, 151, 79), false);
+                draw_button(0, false, RGB565(245, 151, 79), "MAIN");
+                draw_button(80, up_pressed, RGB565(39, 145, 108), "UP");
+                draw_button(160, down_pressed, RGB565(74, 120, 220), "DOWN");
+                flush_screen();
+                vTaskDelay(pdMS_TO_TICKS(1200));
+                draw_voice_state("HOLD MAIN", "TO SPEAK", RGB565(74, 120, 220), false);
+                draw_button(0, false, RGB565(245, 151, 79), "MAIN");
+                draw_button(80, up_pressed, RGB565(39, 145, 108), "UP");
+                draw_button(160, down_pressed, RGB565(74, 120, 220), "DOWN");
+            }
+        }
         if (up_pressed != old_up) draw_button(80, up_pressed, RGB565(39, 145, 108), "UP");
         if (down_pressed != old_down) draw_button(160, down_pressed, RGB565(74, 120, 220), "DOWN");
-        if (main_pressed != old_main || up_pressed != old_up || down_pressed != old_down) {
-            flush_screen();
-            ESP_LOGI(TAG, "buttons main=%d up=%d down=%d", main_pressed, up_pressed, down_pressed);
+        bool buttons_changed = main_pressed != old_main || up_pressed != old_up || down_pressed != old_down;
+        if (buttons_changed) {
+            ESP_LOGI(TAG, "input voice=%d physical=%d virtual=%d up=%d down=%d",
+                     main_pressed, physical_main, virtual_main, up_pressed, down_pressed);
         }
         old_main = main_pressed;
         old_up = up_pressed;
         old_down = down_pressed;
 
-        if (xTaskGetTickCount() - last_color_change >= pdMS_TO_TICKS(1000)) {
-            fill_rect(0, 0, LCD_WIDTH, 188, test_colors[color_index]);
-            flush_screen();
-            ESP_LOGI(TAG, "display test color %u", (unsigned)color_index + 1);
-            color_index = (color_index + 1) % (sizeof(test_colors) / sizeof(test_colors[0]));
-            last_color_change = xTaskGetTickCount();
+        unsigned level = microphone_level();
+        bool level_changed = recording && level != old_level;
+        if (level_changed) {
+            draw_microphone_meter(level);
+            old_level = level;
         }
-        vTaskDelay(pdMS_TO_TICKS(25));
+        if (level_changed || buttons_changed) {
+            flush_screen();
+        }
+        if (++log_counter >= 20) {
+            ESP_LOGI(TAG,
+                     "mic level=%u/11 avg=%" PRIu32 " floor=%" PRIu32
+                     " limit=%" PRIu32 " signal=%" PRIu32 " warmup=%u cal=%u",
+                     level, mic_diag_average, mic_diag_floor, mic_diag_limit,
+                     mic_diag_signal, mic_diag_warmup, mic_diag_calibration);
+            log_counter = 0;
+        }
     }
 }
